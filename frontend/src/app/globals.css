@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap');
+
+:root {
+  --font-big-shoulders: 'Big Shoulders Display', sans-serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --bg: #121212;
+  --accent: #ff5b00;
+  --accent-hover: #ff7f3a;
+  --white: #ffffff;
+  --white-80: rgba(255, 255, 255, 0.8);
+  --white-60: rgba(255, 255, 255, 0.6);
+  --white-50: rgba(255, 255, 255, 0.5);
+  --white-20: rgba(255, 255, 255, 0.2);
+  --white-10: rgba(255, 255, 255, 0.1);
+  --white-5: rgba(255, 255, 255, 0.05);
+  --muted: #999999;
+  --step-num: #5c5c5c;
+  --blue: #0099ff;
+  --radius-pill: 70px;
+  --radius-badge: 30px;
+  --radius-card: 15px;
+  --radius-image: 10px;
+  --section-padding: 80px;
+  --page-padding-x: 40px;
+  --content-max-width: 1200px;
+}
+
+@media (max-width: 809px) {
+  :root {
+    --section-padding: 60px;
+    --page-padding-x: 20px;
+  }
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--white);
+  font-family: var(--font-dm-sans), sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a2a transparent;
+}
+*::-webkit-scrollbar {
+  width: 4px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold tracking-tight text-white;
+}
+
+/* ── React Flow dark overrides ── */
+.react-flow__background {
+  background-color: var(--bg) !important;
+}
+.react-flow__minimap {
+  background-color: #0a0a0a !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 12px !important;
+}
+.react-flow__controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.react-flow__controls button {
+  background-color: #0d0d0d !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 10px !important;
+  color: white !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin-bottom: 4px !important;
+}
+.react-flow__controls button:hover {
+  background-color: #1a1a1a !important;
+}
+.react-flow__controls button svg {
+  fill: white !important;
+}
+.react-flow__edge-path {
+  stroke: #333 !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* ── Shimmer animation ── */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* ── Lightbox entry ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-in { animation: fade-in 0.2s ease-out; }
