@@ -4,10 +4,11 @@ import type { Node, Edge } from '@xyflow/react';
 const elk = new ELK();
 
 const NODE_DIMS: Record<string, { width: number; height: number }> = {
-  collatedPrompt: { width: 340, height: 150 },
-  orchestrator: { width: 320, height: 130 },
-  sceneGroup: { width: 260, height: 90 },
-  frame: { width: 240, height: 310 },
+  collatedPrompt: { width: 340, height: 232 },
+  orchestrator: { width: 320, height: 200 },
+  sceneGroup: { width: 260, height: 108 },
+  frame: { width: 240, height: 342 },
+  video: { width: 240, height: 272 },
 };
 
 const FALLBACK = { width: 200, height: 100 };
@@ -21,9 +22,9 @@ export async function layoutGraph(
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': 'DOWN',
-      'elk.spacing.nodeNode': '35',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '55',
-      'elk.layered.spacing.edgeNodeBetweenLayers': '30',
+      'elk.spacing.nodeNode': '52',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '88',
+      'elk.layered.spacing.edgeNodeBetweenLayers': '40',
       'elk.edgeRouting': 'SPLINES',
     },
     children: nodes.map((n) => {

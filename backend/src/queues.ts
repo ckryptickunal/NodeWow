@@ -32,3 +32,13 @@ export const frameQueue = new Queue('generate-frame', {
     removeOnFail: 50,
   },
 });
+
+export const videoQueue = new Queue('generate-video', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: 'exponential', delay: 15000 },
+    removeOnComplete: 50,
+    removeOnFail: 20,
+  },
+});

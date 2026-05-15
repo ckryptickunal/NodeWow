@@ -6,16 +6,18 @@ const redis = new Redis(config.redisUrl);
 
 /* ── Create ── */
 
-export async function createRun(runId: string, prompt: string) {
+export async function createRun(runId: string, prompt: string, imageSize?: string) {
   const now = new Date().toISOString();
-  await redis.hset(`run:${runId}`, {
+  const fields: Record<string, string> = {
     prompt,
     status: 'orchestrating',
     total: '0',
     completed: '0',
     failed: '0',
     createdAt: now,
-  });
+  };
+  if (imageSize) fields.imageSize = imageSize;
+  await redis.hset(`run:${runId}`, fields);
   await redis.zadd('runs:all', Date.now().toString(), runId);
 }
 
@@ -140,6 +142,45 @@ export async function reconcileStuckRuns() {
   if (fixed > 0) console.log(`[reconcile] Fixed ${fixed} stuck run(s)`);
 }
 
+/* ── Video tracking ── */
+
+export async function saveVideoStatus(
+  runId: string,
+  frameId: string,
+  status: string,
+  extra: Record<string, string> = {},
+) {
+  await redis.hset(
+    `run:${runId}:videos`,
+    frameId,
+    JSON.stringify({ status, ...extra }),
+  );
+}
+
+export async function reconcileStuckVideos() {
+  const allIds = await redis.zrevrange('runs:all', 0, 200);
+  let fixed = 0;
+
+  for (const runId of allIds) {
+    const videoRaw = await redis.hgetall(`run:${runId}:videos`);
+    for (const [frameId, val] of Object.entries(videoRaw)) {
+      try {
+        const v = JSON.parse(val);
+        if (v.status === 'generating') {
+          await redis.hset(
+            `run:${runId}:videos`,
+            frameId,
+            JSON.stringify({ ...v, status: 'failed', error: 'Interrupted — server restarted' }),
+          );
+          fixed++;
+        }
+      } catch { /* skip */ }
+    }
+  }
+
+  if (fixed > 0) console.log(`[reconcile] Fixed ${fixed} stuck video(s)`);
+}
+
 /* ── Queries ── */
 
 export async function listRuns(offset = 0, limit = 50) {
@@ -178,9 +219,15 @@ export async function getRunDetails(runId: string) {
   if (!meta.prompt) return null;
 
   const frameRaw = await redis.hgetall(`run:${runId}:frames`);
-  const frames: Record<string, { status: string; assetUrl?: string; error?: string }> = {};
+  const frames: Record<string, { status: string; assetUrl?: string; thumbUrl?: string; error?: string }> = {};
   for (const [fid, val] of Object.entries(frameRaw)) {
     try { frames[fid] = JSON.parse(val); } catch { frames[fid] = { status: 'unknown' }; }
+  }
+
+  const videoRaw = await redis.hgetall(`run:${runId}:videos`);
+  const videos: Record<string, { status: string; videoUrl?: string; motionPrompt?: string; error?: string }> = {};
+  for (const [fid, val] of Object.entries(videoRaw)) {
+    try { videos[fid] = JSON.parse(val); } catch { /* skip */ }
   }
 
   let plan: object | null = null;
@@ -195,7 +242,33 @@ export async function getRunDetails(runId: string) {
     failed: parseInt(meta.failed || '0', 10),
     createdAt: meta.createdAt ?? '',
     completedAt: meta.completedAt ?? null,
+    imageSize: meta.imageSize ?? '',
     plan,
     frames,
+    videos,
   };
+}
+
+export async function deleteRun(runId: string) {
+  const pipeline = redis.pipeline();
+  pipeline.del(`run:${runId}`);
+  pipeline.del(`run:${runId}:frames`);
+  pipeline.del(`run:${runId}:videos`);
+  pipeline.del(`run:${runId}:pending`);
+  pipeline.zrem('runs:all', runId);
+  await pipeline.exec();
+}
+
+/** Re-open run bookkeeping when retrying one frame (after run may have completed). */
+export async function bumpPendingForFrameRetry(runId: string, previousFrameStatus: string) {
+  const meta = await redis.hgetall(`run:${runId}`);
+  await redis.incr(`run:${runId}:pending`);
+  if (previousFrameStatus === 'failed') {
+    const failed = parseInt(meta.failed || '0', 10);
+    if (failed > 0) await redis.hincrby(`run:${runId}`, 'failed', -1);
+  }
+  const runStatus = meta.status ?? '';
+  if (runStatus === 'complete' || runStatus === 'killed' || runStatus === 'failed') {
+    await redis.hset(`run:${runId}`, { status: 'generating', completedAt: '' });
+  }
 }

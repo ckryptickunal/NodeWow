@@ -6,14 +6,19 @@ import { runsRoutes } from './routes/runs.js';
 import { assetsRoutes } from './routes/assets.js';
 import { startOrchestratorWorker } from './workers/orchestrator.js';
 import { startFrameGenWorker } from './workers/frameGen.js';
-import { reconcileStuckRuns } from './runTracker.js';
+import { startVideoGenWorker } from './workers/videoGen.js';
+import { reconcileStuckRuns, reconcileStuckVideos } from './runTracker.js';
 
 async function main() {
   const app = Fastify({ logger: true });
 
   await app.register(cors, {
-    origin: [config.frontendUrl, 'http://localhost:3000'],
-    methods: ['GET', 'POST', 'OPTIONS'],
+    origin: [
+      config.frontendUrl,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ],
+    methods: ['GET', 'POST', 'OPTIONS', 'DELETE'],
   });
 
   await app.register(multipart, {
@@ -27,12 +32,14 @@ async function main() {
 
   const orchestratorWorker = startOrchestratorWorker();
   const frameGenWorker = startFrameGenWorker();
+  const videoGenWorker = startVideoGenWorker();
   console.log(`[workers] Started (frame concurrency: ${config.frameQueueConcurrency})`);
 
   const shutdown = async () => {
     console.log('Shutting down…');
     await orchestratorWorker.close();
     await frameGenWorker.close();
+    await videoGenWorker.close();
     await app.close();
     process.exit(0);
   };
@@ -45,6 +52,9 @@ async function main() {
 
   reconcileStuckRuns().catch((err) =>
     console.warn('[reconcile] Failed to reconcile stuck runs:', err.message),
+  );
+  reconcileStuckVideos().catch((err) =>
+    console.warn('[reconcile] Failed to reconcile stuck videos:', err.message),
   );
 }
 

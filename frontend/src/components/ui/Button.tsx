@@ -11,7 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center font-body font-bold uppercase tracking-widest transition-all duration-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ff5b00]/50 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center font-body font-bold uppercase tracking-widest transition-[transform,box-shadow,background-color,color,opacity] duration-200 ease-out-expo active:scale-[0.97] active:duration-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#ff5b00]/50 disabled:opacity-50 disabled:pointer-events-none';
 
 const variants: Record<string, string> = {
   primary:

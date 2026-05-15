@@ -10,8 +10,10 @@ frontend/.next/
 frontend/out/
 backend/dist/
 
-# Storage (generated images)
+# Storage — generated artifacts (do not commit local run output)
 backend/storage/
+# Run workspace: frames, thumbs, videos, multipart reference images (`storage/runs/{runId}/…`)
+backend/storage/runs/
 
 # OS files
 .DS_Store

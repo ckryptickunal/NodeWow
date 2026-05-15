@@ -9,11 +9,12 @@ export function startOrchestratorWorker() {
   const worker = new Worker(
     'orchestrate',
     async (job) => {
-      const { runId, collatedPrompt, referenceDir, referenceFiles } = job.data as {
+      const { runId, collatedPrompt, referenceDir, referenceFiles, imageSize } = job.data as {
         runId: string;
         collatedPrompt: string;
         referenceDir?: string;
         referenceFiles?: string[];
+        imageSize?: string;
       };
 
       let plan: Plan;
@@ -48,6 +49,7 @@ export function startOrchestratorWorker() {
           prompt: frame.prompt,
           referenceDir,
           referenceFiles,
+          imageSize,
         },
         opts: { jobId: `${runId}--${frame.id}` },
       }));

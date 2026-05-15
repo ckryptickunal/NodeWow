@@ -15,6 +15,7 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY!,
   orchestratorModel: process.env.ORCHESTRATOR_MODEL || 'gemini-2.5-flash',
   imageModel: process.env.IMAGE_MODEL || 'gemini-3-pro-image-preview',
+  videoModel: process.env.VIDEO_MODEL || 'veo-3.1-generate-preview',
   imageSize: process.env.IMAGE_SIZE || '4K',
   imageAspectRatio: process.env.IMAGE_ASPECT_RATIO || '16:9',
   frameQueueConcurrency: parseInt(process.env.FRAME_QUEUE_CONCURRENCY || '5', 10),

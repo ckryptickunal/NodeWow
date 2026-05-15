@@ -45,7 +45,7 @@ export function startFrameGenWorker() {
   const worker = new Worker(
     'generate-frame',
     async (job) => {
-      const { runId, frameId, prompt, referenceDir, referenceFiles } = job.data as {
+      const { runId, frameId, prompt, referenceDir, referenceFiles, imageSize } = job.data as {
         runId: string;
         frameId: string;
         sceneId: string;
@@ -53,6 +53,7 @@ export function startFrameGenWorker() {
         prompt: string;
         referenceDir?: string;
         referenceFiles?: string[];
+        imageSize?: string;
       };
 
       const isLastAttempt = (job.attemptsMade + 1) >= (job.opts?.attempts ?? 2);
@@ -65,7 +66,7 @@ export function startFrameGenWorker() {
 
       try {
         const refs = await loadReferenceImages(referenceDir, referenceFiles);
-        const imageBuffer = await generateFrameImage(prompt, refs);
+        const imageBuffer = await generateFrameImage(prompt, refs, imageSize);
 
         const dir = join(config.storagePath, 'runs', runId);
         await mkdir(dir, { recursive: true });

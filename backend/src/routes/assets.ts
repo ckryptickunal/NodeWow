@@ -21,7 +21,15 @@ export async function assetsRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Not found' });
     }
 
-    reply.header('Content-Type', 'image/png');
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+    };
+    reply.header('Content-Type', mimeTypes[ext ?? 'png'] ?? 'application/octet-stream');
     reply.header('Cache-Control', 'public, max-age=86400');
     return reply.send(createReadStream(filePath));
   });

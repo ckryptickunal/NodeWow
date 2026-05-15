@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import type { PluginAPI } from 'tailwindcss/types/config';
 
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
@@ -32,9 +33,20 @@ const config: Config = {
       maxWidth: {
         content: 'var(--content-max-width)',
       },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.23, 1, 0.32, 1)',
+        'in-out-expo': 'cubic-bezier(0.77, 0, 0.175, 1)',
+      },
     },
   },
-  plugins: [],
+  plugins: [
+    function emilFineHoverPlugin({ addVariant }: PluginAPI) {
+      addVariant(
+        'fine-hover',
+        '@media (hover: hover) and (pointer: fine)',
+      );
+    },
+  ],
 };
 
 export default config;

@@ -13,7 +13,11 @@ export interface RunEvent {
     | 'frame_failed'
     | 'run_complete'
     | 'run_killed'
-    | 'orchestrator_failed';
+    | 'orchestrator_failed'
+    | 'video_started'
+    | 'video_motion_ready'
+    | 'video_done'
+    | 'video_failed';
   runId: string;
   data: Record<string, unknown>;
 }

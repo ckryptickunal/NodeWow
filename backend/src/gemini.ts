@@ -81,6 +81,82 @@ export function friendlyError(err: unknown): string {
   return err.message;
 }
 
+const MOTION_AGENT_SYSTEM = `You are a physics-aware cinematographer who converts still image descriptions into hyper-realistic video motion directives for an AI video model (Veo 3).
+
+CRITICAL RULES — read before every response:
+
+1. THINK ABOUT PHYSICS FIRST. Before writing anything, mentally simulate:
+   - What materials are in this scene? How does each one move in reality? (metal is rigid, fabric drapes, liquid flows, fire flickers irregularly, skin has pores and subsurface scattering)
+   - What forces act here? (gravity on hanging objects, wind on exposed surfaces, convection near heat, vibration from impact)
+   - What is the scale? (macro shots amplify tiny tremors; aerial shots need large-scale motion like cloud shadows or vehicle movement)
+
+2. NEVER USE THESE CLICHÉS — they produce generic, fake-looking video:
+   - "dust motes floating/drifting" (overused, looks artificial when AI-generated)
+   - "slow dolly-in" as the default camera move (use it only when motivated by the scene)
+   - "gentle/subtle/imperceptible" as filler adjectives — be SPECIFIC about amplitude instead (e.g. "2mm sway", "5-degree tilt")
+   - "flickering light" without specifying the cause, frequency, and color shift
+   - Generic "breathing" unless the subject is a living being shown chest-up
+
+3. CHOOSE CAMERA MOTION BASED ON THE SCENE, not a formula:
+   - Static locked-off tripod: best for macro/product shots where subject motion IS the story
+   - Handheld with natural body sway: human-centric, documentary feel (specify shake amplitude)
+   - Motorized slider/dolly: smooth reveal, parallax between foreground/background layers
+   - Drone/crane: only for wide/aerial scenes — specify altitude, speed, and drift
+   - Rack focus pull: when there are distinct depth planes to shift between
+   - NO camera motion at all is valid — sometimes letting only the subject move is more powerful
+
+4. DESCRIBE 2-3 SPECIFIC, PHYSICALLY MOTIVATED MOTIONS per scene:
+   - Name the exact object that moves (not "elements shift")
+   - State what force causes the motion (wind, gravity, heat convection, human touch, vibration)
+   - Give approximate speed/amplitude ("the silk ripples in 1-second waves", "the flame leans 15° left then recovers")
+
+5. MATCH THE ENERGY TO THE SCENE:
+   - A forge/workshop scene should have abrupt sparks, metal ring vibration, heat shimmer — NOT gentle calm
+   - An aerial landscape should have cloud shadow travel, thermal haze — NOT micro-details
+   - A ceremonial close-up should have reverent stillness with one deliberate motion as the focal point
+
+FORMAT: Return 2-4 sentences. First sentence = camera behavior. Remaining sentences = specific physical motions in the scene. No preamble, no labels, no markdown.`;
+
+export async function generateMotionPrompt(imagePrompt: string): Promise<string> {
+  const response = await ai.models.generateContent({
+    model: config.orchestratorModel,
+    config: {
+      systemInstruction: MOTION_AGENT_SYSTEM,
+      temperature: 0.9,
+    },
+    contents: `Analyze this image description and write a hyper-realistic video motion directive. Think step-by-step about what materials, forces, and scale are present, then write the motion prompt.\n\nImage description:\n${imagePrompt}`,
+  });
+  return response.text?.trim() ?? 'Locked-off tripod. A single specular highlight crawls across the metal surface as ambient light shifts 3 degrees over 6 seconds.';
+}
+
+export async function generateVideo(
+  imageBytes: string,
+  motionPrompt: string,
+  outputPath: string,
+): Promise<void> {
+  let operation = await ai.models.generateVideos({
+    model: config.videoModel,
+    prompt: motionPrompt,
+    image: {
+      imageBytes,
+      mimeType: 'image/png',
+    },
+  });
+
+  while (!operation.done) {
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    operation = await ai.operations.getVideosOperation({ operation });
+  }
+
+  if (!operation.response?.generatedVideos?.length) {
+    throw new Error('No video generated — the model returned an empty result');
+  }
+
+  const generatedVideo = operation.response.generatedVideos[0];
+
+  await ai.files.download({ file: generatedVideo, downloadPath: outputPath });
+}
+
 export interface ReferenceImage {
   mimeType: string;
   data: string;
@@ -89,6 +165,7 @@ export interface ReferenceImage {
 export async function generateFrameImage(
   prompt: string,
   references: ReferenceImage[] = [],
+  imageSize?: string,
 ): Promise<Buffer> {
   const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
 
@@ -108,7 +185,7 @@ export async function generateFrameImage(
       responseModalities: ['IMAGE'],
       imageConfig: {
         aspectRatio: config.imageAspectRatio,
-        imageSize: config.imageSize,
+        imageSize: imageSize || config.imageSize,
       },
     },
   });

@@ -6,6 +6,47 @@
 
 ---
 
+## 2026-05-14 06:57 IST — Overhaul motion prompt agent for realism
+
+**What:** Replaced the generic motion agent system prompt with a physics-aware cinematography directive. The old prompt produced identical cookie-cutter results ("slow dolly-in + dust motes + gentle breathing" for every scene). The new prompt forces the model to: (1) simulate physics first — what materials, forces, and scale exist in the scene, (2) avoid clichés (dust motes, generic dolly-in, filler adjectives like "subtle/gentle"), (3) choose camera motion motivated by the actual scene content instead of a formula, (4) describe 2-3 physically specific motions with named objects, causal forces, and approximate amplitudes, (5) match energy to the scene type. Also switched to using `systemInstruction` config for proper system/user separation, raised temperature to 0.9 for variety, and added a step-by-step reasoning prompt to the user message.
+
+**Files changed:**
+- `backend/src/gemini.ts` — Rewrote `MOTION_AGENT_SYSTEM` prompt; updated `generateMotionPrompt()` to use `config.systemInstruction` and `temperature: 0.9`
+
+---
+
+## 2026-05-14 06:54 IST — Fix video nodes not showing consistently
+
+**What:** Fixed React Flow edge connection failures that caused some video nodes to not render. Root cause: frame nodes had both target (top) and source (bottom) Handles without explicit IDs, making React Flow's handle matching non-deterministic. Also removed redundant "Video" badge and "Play" button from frame nodes (now handled by dedicated video nodes), fixed stuck `generating` videos via a startup reconciliation that marks them as `failed`, and added explicit `sourceHandle`/`targetHandle` to all video edges.
+
+**Files changed:**
+- `frontend/src/components/flow/FrameNode.tsx` — Added explicit Handle `id` props (`target-top`, `source-video`); removed redundant video badge, play button, and `handlePlayVideo` callback
+- `frontend/src/components/flow/VideoNode.tsx` — Added explicit Handle `id` prop (`target-top`)
+- `frontend/src/components/flow/FlowCanvas.tsx` — Updated `buildEdges` and SSE handler video edges to use `sourceHandle: 'source-video'` and `targetHandle: 'target-top'`; updated scene→frame edges with `targetHandle: 'target-top'`
+- `backend/src/runTracker.ts` — Added `reconcileStuckVideos()` to mark abandoned `generating` videos as `failed` on startup
+- `backend/src/index.ts` — Call `reconcileStuckVideos()` during server startup
+
+---
+
+## 2026-05-14 06:15 IST — Video generation from images (Veo 3.1)
+
+**What:** Added image-to-video generation using Google Veo 3.1. A "Generate Video" button now appears on all completed frame nodes. When clicked, a motion agent (using the orchestrator LLM) analyzes the original image prompt and generates an appropriate cinematic motion directive. That motion prompt is then combined with the source image to generate a 5-8 second video via Veo 3.1's image-to-video API. Videos are displayed in a dedicated player modal.
+
+**Files changed:**
+- `backend/src/config.ts` — Added `videoModel` config (`veo-3.1-generate-preview`)
+- `backend/src/gemini.ts` — Added `generateMotionPrompt()` (motion agent) and `generateVideo()` (Veo 3.1 image-to-video with polling)
+- `backend/src/queues.ts` — Added `videoQueue` BullMQ queue
+- `backend/src/workers/videoGen.ts` — **New file**: Video generation worker with motion prompt → video pipeline
+- `backend/src/sse.ts` — Added video SSE event types: `video_started`, `video_motion_ready`, `video_done`, `video_failed`
+- `backend/src/routes/runs.ts` — Added `POST /api/runs/:runId/frames/:frameId/video` endpoint
+- `backend/src/routes/assets.ts` — Extended MIME type handling for `.mp4` video serving
+- `backend/src/index.ts` — Registered video worker
+- `frontend/src/components/flow/FrameNode.tsx` — Added video UI: generate button, generating spinner badge, play badge, play button
+- `frontend/src/components/flow/FlowCanvas.tsx` — Added video SSE handlers, generate-video/play-video event listeners, video player modal
+- `.env.example` — Documented `VIDEO_MODEL` config
+
+---
+
 ## 2026-05-14 05:42 IST — Input node controls & Retry failed button
 
 **What:** Added prompt-view and kill-switch buttons directly on the INPUT PROMPT node, and a "Retry Failed" button in the status bar for failed/killed runs that re-queues only the failed frames.
